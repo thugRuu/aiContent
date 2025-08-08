@@ -1,18 +1,15 @@
 import { Request,Response } from "express";
-// import { GoogleGenAI } from "@google/genai";
-
-// const ai = new GoogleGenAI({});
+import { CandidatesResponse } from "../types/aiResponseType";
 
 export const getAiContent = async (req:Request,res:Response)=>{
     const {text}  = req.body;
-    console.log("body",text)
 
     if (!text) {
         return res.json({ error: "Text is required" });
     }
 
     try{
-        const apiKey = "AIzaSyDv_EE5N83f9w9vvoISs8RBOB29JYkxX_g";
+        const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey){
             return res.json({error:"Someting is wrong with api"})
         }
@@ -24,11 +21,15 @@ export const getAiContent = async (req:Request,res:Response)=>{
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              prompt: {
-                text: `Summarize this text briefly:\n\n${text}`,
-              },
-              temperature: 0.5,
-              maxOutputTokens: 150,
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `Give me summary for${text} `,
+                    },
+                  ],
+                },
+              ],
             }),
           }
         );
@@ -37,9 +38,8 @@ export const getAiContent = async (req:Request,res:Response)=>{
             console.error("Google API error:", err);
             return res.status(500).json({ error: "Google API request failed" });
         }
-        const data = await aiRes.json();
-        console.log(data)
-        res.send(data)
+        const data:CandidatesResponse = await aiRes.json();
+        res.send(data.candidates[0]?.content.parts)
 
     }catch(e){
          console.error("Unexpected error:", e);
