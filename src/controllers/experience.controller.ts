@@ -39,7 +39,7 @@ export const updateExperience = async (req: Request, res: Response) => {
     const updatedExperience = await Experience.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true, runValidators: true }
     );
     if (!updatedExperience)
       return res.status(404).json({ message: "Experience not found" });

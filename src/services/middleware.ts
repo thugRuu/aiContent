@@ -11,6 +11,7 @@ export const protect = async (req: any, res: Response, next: NextFunction) => {
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
     ) {
+      console.log(req.headers.authorization);
         try {
             token = req.headers.authorization.split(" ")[1];
             const decoded = verifyJwtToken(token)

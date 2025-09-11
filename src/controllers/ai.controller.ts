@@ -38,7 +38,8 @@ export const getAiContent = async (req:Request,res:Response)=>{
             console.error("Google API error:", err);
             return res.status(500).json({ error: "Google API request failed" });
         }
-        const data:CandidatesResponse = await aiRes.json();
+        const data: CandidatesResponse = await aiRes.json();
+        console.log(data.candidates[0]?.content.parts);
         res.send(data.candidates[0]?.content.parts)
 
     }catch(e){
