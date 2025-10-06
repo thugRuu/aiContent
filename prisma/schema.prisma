@@ -1,0 +1,185 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Blog{
+  
+  id              String      @id @default(cuid())
+  title           String   @db.VarChar(255)         // Main headline
+  slug            String   @unique @db.VarChar(255) // SEO-friendly URL
+  excerpt         String?  @db.Text                 // Meta description / preview
+  content         String?  @db.Text                 // Full blog content
+  coverImage      String?  @db.VarChar(512)         // Open Graph / preview image
+  published       Boolean  @default(false)
+  publishedAt     DateTime?                         // For structured data
+  updatedAt       DateTime  @updatedAt
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id])
+
+  // SEO Metadata
+  seoTitle        String?  @db.VarChar(255)         // Custom <title> tag
+  seoDescription  String?  @db.VarChar(512)         // Custom <meta description>
+  canonicalUrl    String?  @db.VarChar(512)         // Canonical link
+  keywords        String[]                          // For meta keywords (optional)
+
+  // Structured Data Support
+  schemaType      String?  @db.VarChar(100)           // e.g. BlogPosting, Article
+  readingTime     String?                                // Estimated reading time in minutes
+  wordCount       String?                                // Useful for schema + analytics
+
+  // Engagement
+  views           Int      @default(0)
+  likes           Int      @default(0)
+  comments        Comment[]                         // Optional: if you support comments
+
+  // Tags & Categories
+  tags            Tag[]                            // Many-to-many relation
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])     
+  jsonLD          Json?  
+
+
+}
+model User {
+  id       String          @id @default(cuid())
+  name    String   @db.VarChar(255)
+  email   String   @unique @db.VarChar(255)
+  password String   @db.VarChar(255)
+  posts   Blog[]
+  projects Project[]
+  profile Profile?
+  session Session?
+  Authenticator Authenticator[]
+  role   String   @default("USER") // e.g., USER, ADMIN
+}
+model Profile {
+  id              String     @id @default(cuid())
+  userId          String     @unique
+  user            User    @relation(fields: [userId], references: [id])
+
+  fullName        String  @db.VarChar(255)   // For schema.name
+  bio             String  @db.Text           // For schema.description
+  jobTitle        String  @db.VarChar(255)   // For schema.jobTitle
+  company         String  @db.VarChar(255)   // For schema.worksFor
+  location        String  @db.VarChar(255)   // For schema.address
+  website         String  @db.VarChar(512)   // For schema.url
+  imageUrl        String  @db.VarChar(512)   // For schema.image
+  socialLinks     String[]                   // For schema.sameAs (LinkedIn, Twitter, etc.)
+  expertise       Experience[]                   // Topics of authority (e.g. SEO, TypeScript)                   // Optional: reverse relation for authored content
+  comments        Comment[]
+  jsonLD          Json?
+}
+
+
+model Category {
+  id              String      @id @default(cuid())
+  name            String   @unique @db.VarChar(100)   // Display name
+  slug            String   @unique @db.VarChar(100)   // URL-friendly identifier
+  description     String   @db.Text                   // Meta description for SEO
+  seoTitle        String   @db.VarChar(255)           // Custom <title> tag
+  seoDescription  String   @db.VarChar(512)           // Custom <meta description>
+  canonicalUrl    String   @db.VarChar(512)           // Canonical link for category page
+  imageUrl        String   @db.VarChar(512)           // Open Graph image
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  jsonLD          Json?
+  posts           Blog[]                              // One-to-many relation
+}
+
+
+model Tag {
+  id    String     @id @default(cuid())
+  name  String  @unique @db.VarChar(100) 
+  blog  Blog[]   
+}
+
+model Experience {
+  id             String      @id @default(cuid())
+  profileId      String
+  profile        Profile     @relation(fields: [profileId], references: [id])
+  title          String   @db.VarChar(255)   // Role or project title
+  company        String   @db.VarChar(255)   // Organization or client
+  location       String   @db.VarChar(255)   // City, country
+  startDate      DateTime                    // When it began
+  endDate        DateTime                    // When it ended (or use isCurrent flag)
+  isCurrent      Boolean  @default(false)    // Still active?
+  description    String   @db.Text           // Summary of responsibilities or impact
+  technologies   String[]                    // Stack used (e.g. ['React', 'Prisma'])777777777olpp/
+  achievements   String[]                    // Key accomplishments
+  jsonLd         Json                        // JSON-LD for schema.org markup
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Project {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  title           String   @db.VarChar(255)   // Project name
+  slug            String   @unique @db.VarChar(255) // SEO-friendly URL
+  description     String   @db.Text           // Full project summary
+  shortSummary    String   @db.VarChar(512)   // Meta description
+  imageUrl        String   @db.VarChar(512)   // Open Graph / preview image
+  website         String   @db.VarChar(512)   // Live project link
+  repoUrl         String   @db.VarChar(512)   // GitHub or source repo
+  technologies    String[]                    // Stack used (e.g. ['Prisma', 'Next.js'])
+  tags            String[]                    // SEO keywords or topic tags
+  startDate       DateTime
+  endDate         DateTime
+  isOngoing       Boolean  @default(false)
+  role            String   @db.VarChar(255)   // Your role (e.g. Lead Dev, Architect)
+  achievements    String[]                    // Key accomplishments
+  jsonLd          Json                        // JSON-LD for schema.org markup
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+
+
+model Comment {
+  id        String      @id @default(cuid())
+  profileId    String
+  profile      Profile     @relation(fields: [profileId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  postId    String
+  post      Blog    @relation(fields: [postId], references: [id])
+}
+model Session {
+  sessionToken String   @unique
+  userId       String      @unique
+  user         User     @relation(fields: [userId], references: [id])
+  expires      DateTime
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Authenticator {
+  credentialID         String  @unique
+  userId               String  @unique
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              String
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+ 
+  user User @relation(fields: [userId], references: [id])
+ 
+  @@id([userId, credentialID])
+}
+

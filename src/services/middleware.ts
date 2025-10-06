@@ -1,24 +1,35 @@
-import { Request, Response, NextFunction } from "express";
-const jwt = require('jsonwebtoken')
+import { Response, NextFunction } from "express";
 
-import User from "../types/user.type";
 import { verifyJwtToken } from "./jwt";
-
+import prisma from "../lib/prisma";
 
 export const protect = async (req: any, res: Response, next: NextFunction) => {
   let token;
   if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      console.log(req.headers.authorization);
-        try {
-            token = req.headers.authorization.split(" ")[1];
-            const decoded = verifyJwtToken(token)
-            console.log("token",decoded)
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    console.log(req.headers.authorization);
+    try {
+      token = req.headers.authorization.split(" ")[1];
+      const decoded = verifyJwtToken(token);
+      console.log("token", decoded);
+      const email = decoded?.email;
 
-      req.user = await User.findOne({email:decoded?.email}).select("-password");
-
+      const user = await prisma.user.findUnique({
+        where: { email: email! },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+        },
+      });
+      if (!user) {
+        return res
+          .status(401)
+          .json({ message: "Not authorized, user not found" });
+      }
+      req.user = user;
       next();
     } catch (err) {
       return res.status(401).json({ message: "Not authorized, token failed" });
@@ -30,10 +41,9 @@ export const protect = async (req: any, res: Response, next: NextFunction) => {
   }
 };
 export const adminOnly = (req: any, res: any, next: any) => {
-  if (req.user && req.user.roles === "admin") {
+  if ((req.user && req.user.role === "admin") || "ADMIN") {
     next();
   } else {
     res.status(403).json({ message: "Access denied: Admins only" });
   }
 };
-
